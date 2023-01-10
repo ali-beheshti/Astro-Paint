@@ -314,6 +314,12 @@ class Catalog:
         print("Building the dataframe and updating all the parameters...\n")
 
         # calculate the comoving distance and angular position (theta and phi in radians)
+#         print(type(self.data['x'][0]))
+#         print(self.data['x'][0])
+#         print(type(self.data['x'][0].value))
+#         print(self.data['x'][0].value)
+#         print(type(self.data['x']))
+#         print(type(self.data['x'].values))
         self.data['D_c'], self.data['lat'], self.data['lon'] = cartesian_to_spherical(
                                                                     self.data['x'].values,
                                                                     self.data['y'].values,
@@ -328,12 +334,25 @@ class Catalog:
                 self.data['redshift'] = pd.Series([default_redshift]*len(self.data['D_c']))
 
         # theta = pi/2 - lat , phi = lon
-        self.data['theta'] = np.pi / 2 - self.data['lat']
-        self.data['phi'] = self.data['lon']
+#         print('\n lat stuff\n')
+#         print(type(self.data['lat'][0]))
+#         print(self.data['lat'][0])
+#         print(type(self.data['lat'][0].value))
+#         print(self.data['lat'][0].value)
+#         print(type(self.data['lat']))
+#         print(type(self.data['lat'].values.value))
+        self.data['theta'] = np.pi / 2 - self.data['lat'].values.value
+        self.data['phi'] = self.data['lon'].values.value
 
         # convert lonlat coords to deg
         self.data['lon'], self.data['lat'] = np.rad2deg((self.data['lon'], self.data['lat']))
-
+        self.data['lon'] = np.rad2deg(self.data['lon'])
+        
+        #ali temporary
+        from astropy.cosmology import Planck18 as cosmo
+        self.data['D_c'] = cosmo.comoving_distance(self.data['redshift'])
+        print(self.data['D_c'])
+        
         # calculate angular diameter distance, virial radius and angular size
         self.data['D_a'] = transform.D_c_to_D_a(self.data['D_c'], self.data['redshift'])
         self.data['R_200c'] = transform.M_200c_to_R_200c(self.data['M_200c'], self.data['redshift'])
@@ -1224,7 +1243,7 @@ class Canvas:
                                self.catalog.data.y[halo],
                                self.catalog.data.z[halo]),
                               self.R_times * transform.arcmin2rad(
-                                  self.catalog.data.R_ang_200c[halo]),
+                                  self.catalog.data.R_ang_200c[halo]).value,
                               inclusive=self.inclusive,
                               )
 
@@ -1383,13 +1402,15 @@ class Canvas:
 
         #if graticule: hp.graticule()
 
-        hp_viewer(map_,
-                  cmap=self.cmap,
-                  min=min,
-                  max=max,
-                  *args,
-                  **kwargs,
-                  )
+#        hp_viewer(map_,
+#                  cmap=self.cmap,
+#                  min=min,
+#                  max=max,
+#                  *args,
+#                  **kwargs,
+#                  )
+        
+        hp_viewer(map_)
 
     def show_halo_centers(self,
                           projection="mollweide",
@@ -1423,12 +1444,14 @@ class Canvas:
         if s is None:
             s = np.log(self.catalog.data.M_200c)
 
+#        hp.projscatter(self.catalog.data.theta,
+#                       self.catalog.data.phi,
+#                       color=color,
+#                       s=s,
+#                       marker=marker,
+#                       )
         hp.projscatter(self.catalog.data.theta,
-                       self.catalog.data.phi,
-                       color=color,
-                       s=s,
-                       marker=marker,
-                       )
+                       self.catalog.data.phi)
 
     def show_discs(self,
                    projection="mollweide",
@@ -2427,7 +2450,7 @@ class Painter:
                                            template,
                                            spray_df)
                                for halo_batch in halo_batches)
-
+    
 
             # put the batches together and shut down ray
             canvas.pixels = shared_pixels
@@ -2639,8 +2662,47 @@ class Painter:
 
 
         parameters = list(set(self.template_args_list[1:]) - set(params_not_found))
+        
+        # print("\n----parameters-----")
+        # print(parameters)
+        # print("\n----type parameters-----")
+        # print(type(parameters))
+        # print("\n----shape parameters-----")
+        # print(np.shape(parameters))
+        # print("\n----parameters[0]-----")
+        # print(parameters[0])
+        # print("\n-----shape catal.data----")
+        # print(np.shape(catalog.data))
+        # print("\n-----type catal.data----")
+        # print(type(catalog.data))
+        # print("\n----catal.data-----")
+        # print(catalog.data)
+        # print("\n----catal.data[param[0]]-----")
+        # print(catalog.data[parameters[0]])
+#         print("\n----catal.data[['v_ph', 'phi']]-----")
+#         print(catalog.data[["v_ph", "phi"]])
+        # print("\n----catal.data[0:]-----")
+        # print(catalog.data[0:])
+        # print("\n---------")
+        
+        #template_args_df= pd.DataFrame(catalog.data['M_200c'])
+        #template_args_df = catalog.data[parameters]
+        template_args_df = catalog.data.loc[:, parameters]
+        
+#         template_args_df = catalog.data[['R_200c']]
+#         template_args_df = catalog.data[['R_200c','M_200c']]
+# the above give the same error: 
+# AttributeError: 'numpy.ndarray' object has no attribute 'to_value'
+# UnitConversionError: 'Unit(dimensionless)' is not a scaled version of 'Unit("deg")'
+# UnitConversionError: '' (dimensionless) and 'deg' (angle) are not convertible
+        
+#         template_args_df = catalog.data[0:]
+#         template_args_df = catalog.data['R_200c']
+# the above give the same error: (for now, I don't work on these)
+# UnitConversionError: 'Unit("rad")' is not a scaled version of 'Unit(dimensionless)'
+# UnitConversionError: 'rad' (angle) and '' (dimensionless) are not convertible
+# TypeError: only dimensionless scalar quantities can be converted to Python scalars
 
-        template_args_df = catalog.data[parameters]
         return template_args_df
 
     def _shake_canister(self, catalog, template_kwargs):

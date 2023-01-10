@@ -21,7 +21,7 @@ logger.setLevel(logging.ERROR)
 #        constants
 # ------------------------
 from astropy.constants import sigma_T, m_p
-from astropy.cosmology import z_at_value, Planck18_arXiv_v2 as cosmo
+from astropy.cosmology import z_at_value, Planck18 as cosmo
 from astropy import units as u
 
 T_0 = 2.725E6 #uK
@@ -88,7 +88,12 @@ def M_200c_to_rho_s(M_200c, redshift, R_200c=None, c_200c=None):
         c_200c = M_200c_to_c_200c(M_200c, redshift)
 
     R_s = R_200c / c_200c
-    A_c = np.log(1+c_200c) - c_200c/(1+c_200c)
+#     print(type(c_200c))
+#     print(c_200c)
+#     print("\n", c_200c.values)
+    #ali
+    A_c = np.log(1+c_200c.astype(np.float)) - c_200c/(1+c_200c)
+#     A_c = np.log(1+c_200c) - c_200c/(1+c_200c)
     rho_s = M_200c / (16*np.pi*(R_s**3)*A_c)
 
     return rho_s
@@ -125,10 +130,17 @@ def radius_to_angsize(radius, D_a, arcmin=True):
     if arcmin == True: return the value in arcmin
 
     *NOTE: radius and D_a must have the same units"""
+    
+    #ali
+    ang_size = np.true_divide(radius, D_a)*u.rad
+#     print(type(ang_size))
+#     print(np.shape(ang_size))
+#     print(ang_size)
+#     print(ang_size.values)
 
-    ang_size = np.true_divide(radius, D_a)
-
-    if arcmin: ang_size = rad2arcmin(ang_size)
+    #ali
+    if arcmin: ang_size = 180 * 60 * ang_size / np.pi
+#     if arcmin: ang_size = rad2arcmin(ang_size.astype(np.float))
 
     return ang_size
 
@@ -147,7 +159,9 @@ def rad2arcmin(angle):
 
 def arcmin2rad(angle):
     """convert arcmins to radians"""
-    return np.deg2rad(angle/60)
+    #ali
+    return ((angle/60)/180)*np.pi
+#     return np.deg2rad(angle/60) 
 
 
 def get_cart2sph_jacobian(th, ph):

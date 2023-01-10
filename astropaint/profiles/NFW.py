@@ -9,7 +9,8 @@ import numpy as np
 
 from astropy import units as u
 from astropy.constants import sigma_T, m_p
-from astropy.cosmology import Planck18_arXiv_v2 as cosmo
+#from astropy.cosmology import Planck18_arXiv_v2 as cosmo
+from astropy.cosmology import Planck18 as cosmo
 
 from astropaint.lib.utils import interpolate, LOS_integrate
 from astropaint.lib import transform
@@ -135,7 +136,7 @@ def deflection_angle(R, c_200c, R_200c, M_200c, *, suppress=True, suppression_R=
 
     R_s = R_200c / c_200c
     x = R / R_s
-    x = x.astype(np.complex)
+    x = x.astype(np.complex).value
 
     f = np.true_divide(1, x) * (np.log(x / 2) + 2 / np.sqrt(1 - x ** 2) *
                                 np.arctanh(np.sqrt(np.true_divide(1 - x, 1 + x))))
@@ -145,7 +146,7 @@ def deflection_angle(R, c_200c, R_200c, M_200c, *, suppress=True, suppression_R=
     # suppress alpha at large radii
     if suppress:
         suppress_radius = suppression_R * R_200c
-        alpha *= np.exp(-(R / suppress_radius) ** 3)
+        alpha *= np.exp(-(R.value / suppress_radius) ** 3)
 
     return alpha.real
 
