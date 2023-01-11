@@ -69,8 +69,8 @@ def M_200c_to_c_200c(M_200c, redshift):
 
     #fitting parameters from Coe 2010 (1005.0411)
     A = 5.71
-    d = -0.047
-    m = -0.097
+    d = -0.47 #ali: fixed based on Duffy+ 2008
+    m = -0.084 #ali: fixed based on Duffy+ 2008
     M_0 = 2.E12/h #M_sun
 
     c_200c = A * (1 + redshift) ** d * (M_200c / M_0) ** m
