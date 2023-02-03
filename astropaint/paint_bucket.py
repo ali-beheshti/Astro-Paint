@@ -346,7 +346,7 @@ class Catalog:
 
         # convert lonlat coords to deg
         self.data['lon'], self.data['lat'] = np.rad2deg((self.data['lon'], self.data['lat']))
-        self.data['lon'] = np.rad2deg(self.data['lon'])
+#         self.data['lon'] = np.rad2deg(self.data['lon'])
         
         #ali temporary
         from astropy.cosmology import Planck18 as cosmo
