@@ -50,7 +50,9 @@ def M_200c_to_R_200c(M_200c, redshift):
     """calculate R_200c from M_200c at the given redshift
     see Eq. 1 in Huang et al 1701.04001"""
 
-    crit_dens = crit_dens_0 * (1 + redshift) ** 3
+#     crit_dens = crit_dens_0 * (1 + redshift) ** 3
+    #ali:
+    crit_dens = cosmo.critical_density(np.array(redshift)).to(u.solMass/u.Mpc**3).value #M_sun/Mpc**3
     R_200c = np.power((3*M_200c)/(800*np.pi*crit_dens), 1/3)
 
     return R_200c
@@ -272,7 +274,9 @@ def fwhm2sigma(fwhm, arcmin=True):
     """
     if arcmin:
         fwhm = arcmin2rad(fwhm)
-    return fwhm ** 2 / 8 / np.log(2)
+#     return fwhm ** 2 / 8 / np.log(2)
+    #ali:
+    return fwhm /np.sqrt(8*np.log(2))
 #########################################################
 #          Patch Transformations (for stacking)
 #########################################################

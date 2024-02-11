@@ -109,46 +109,86 @@ def rho_2D_interp(R, rho_s, R_s):
     return rho_3D(R, rho_s, R_s)
 
 
-def deflection_angle(R, c_200c, R_200c, M_200c, *, suppress=True, suppression_R=8):
+def deflection_angle(R, c_200c, R_200c, M_200c, redshift, *, suppress=False, suppression_R=8):
     """
     calculate the deflection angle of a halo with NFW profile
-    Using Eq 6 in Baxter et al 2015 (1412.7521)
 
     Parameters
     ----------
     R:
-        distance from the center of halo [Mpc]
+        distance from the center of halo (physical)[Mpc]
     c_200c:
         halo concentration parameter
     R_200c:
-        halo 200c radius in [Mpc]
+        halo 200c radius in (physical)[Mpc]
     M_200c:
-        halo 200c mass of halo in M_sun
-
+        halo 200c mass of halo in [Msun]
+    redshift:
+        you guessed it, right! :D
 
     Returns
     -------
-        the deflection angle at distance R from the center of halo
+        the deflection angle at distance (physical) R from the center of halo
     """
+    
+    # constants for making units right
+    msun = 1.989e30   # solar mass in kg
+    mpc = 3.08567758e22   # Mpc in m
+    c_kms = 299792.458  # Speed of light in km/s
+    c_ms = c_kms*10**3   # Speed of light in m/s
+    G = 6.67e-11*(msun/mpc)  # from [m^3.kg^-1.s^-2] to [m^2.Mpc.c^-2.Msun^-1]
+    
+    # objects info
+    Z = np.array(redshift)
+    a = 1/(1+Z) # scale factor
+    Rs = R_200c/c_200c/a # (comoving) [Mpc]
+    rhoS = M_200c /(4.*np.pi*(Rs**3)) /(np.log(1.+c_200c) - c_200c/(1.+c_200c)) # (comoving) [Msun/Mpc^3]
+    c_tr = 1 * c_200c
 
-    A = M_200c * c_200c ** 2 / (np.log(1 + c_200c) - c_200c / (1 + c_200c)) / 4. / np.pi
-    C = 16 * np.pi * Gcm2 * A / c_200c / R_200c
-
-    R_s = R_200c / c_200c
-    x = R / R_s
+ 
+    # preparing x from R
+    x = (R/a) / Rs # dimensionless, rad
     x = x.astype(np.complex).value
 
-    f = np.true_divide(1, x) * (np.log(x / 2) + 2 / np.sqrt(1 - x ** 2) *
-                                np.arctanh(np.sqrt(np.true_divide(1 - x, 1 + x))))
-
-    alpha = C * f
+    
+    fArray = []
+    # looping over all segments in x
+    for i in np.arange(len(x)):
+        # array to store f values at each segment
+        # f truncation
+        # if the segment is inside truncation calculate f inside
+        if x[i] < c_tr:
+            # f inside
+            fIn = x[i]*((-np.log(np.sqrt(c_tr**2 - x[i]**2) + c_tr) + \
+                    (np.log(-x[i]) -2j*(np.log(-x[i]).imag) \
+                    - np.log(np.sqrt(1 - x[i]**2)*np.sqrt(c_tr**2 - x[i]**2) \
+                    - c_tr - x[i]**2))/ np.sqrt(1 - x[i]**2) + np.log(x[i]))/x[i]**2 + \
+                    ((1/np.sqrt(1 - x[i]**2) + 1)*np.log(c_tr + 1))/x[i]**2 - \
+                    1/((c_tr + 1)*(np.sqrt((c_tr - x[i])*(c_tr + x[i])) + c_tr))) # dimensionless
+            # store it in the ff array and go to the next segment
+            fArray.append(fIn)
+            #print("in",fIn)
+        # if that segment is outside truncation calculate f outside
+        else:
+            # f outside
+            fOut = (1/x[i])*( (-c_tr/(1+c_tr)) + np.log(1+c_tr) ) # dimensionless
+            # store it in the ff array and go to the next segment
+            fArray.append(fOut)
+            #print("out",fOut)            
+    
+    # put the fArray values into an array f
+    f = np.array(fArray)    
+    
+    # calculate the deflection angle
+    beta = (16. *np.pi *G *rhoS *(Rs**2) /(a*(c_ms**2)) ) *(f.real) # dimensionless, rad 
 
     # suppress alpha at large radii
     if suppress:
         suppress_radius = suppression_R * R_200c
-        alpha *= np.exp(-(R.value / suppress_radius) ** 3)
-
-    return alpha.real
+        beta *= np.exp(-(R.value / suppress_radius) ** 3)
+        
+        
+    return beta
 
 
 def tau_2D(R, rho_s, R_s):
@@ -179,16 +219,23 @@ def kSZ_T(R, rho_s, R_s, v_r, *, T_cmb=T_cmb):
     return dT
 
 
-def BG(R_vec, c_200c, R_200c, M_200c, theta, phi, v_th, v_ph, *, T_cmb=T_cmb):
-    """Birkinshaw-Gull effect
+def BG(R_vec, c_200c, R_200c, M_200c, redshift, theta, phi, v_r, v_th, v_ph, *, T_cmb=T_cmb):
+    """
+    Birkinshaw-Gull effect
     aka moving lens
-    aka Rees-Sciama (moving gravitational potential)"""
+    aka Rees-Sciama (moving gravitational potential)
+    
+    if we want output in uK then T_cmb should come as uK
+    v_th, v_ph are supposed to be in km/s
+    
+    """
+    c_kms = 299792.458  # Speed of light in km/s
 
     R = np.linalg.norm(R_vec, axis=-1)
-    # R_hat = np.true_divide(R_vec, R[:, None])
     R_hat = np.true_divide(R_vec, np.expand_dims(R, axis=-1))
+    beta = deflection_angle(R, c_200c, R_200c, M_200c, redshift)
+    v_vec = transform.convert_velocity_sph2cart(theta, phi, 0 , v_th, v_ph)
 
-    alpha = deflection_angle(R, c_200c, R_200c, M_200c)
-    v_vec = transform.convert_velocity_sph2cart(theta, phi, 0, v_th, v_ph)
-    dT = -alpha * np.dot(R_hat, v_vec) / c * T_cmb
+    dT = -beta * np.dot(R_hat, v_vec) / c_kms * T_cmb  
+
     return dT
