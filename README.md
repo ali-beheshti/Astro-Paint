@@ -1,6 +1,6 @@
 The main updates made to the original AstroPaint package are the following:
 
-1. In the transform.py file, two of the halo concentration parameters used were not matching with the reference inside the cited paper in the code. Those are now updated from -0.047 and -0.097 to -0.47 and -0.084 so they match with Duffy et al. 2008. It seems one typo had happened when Coe 2010 quoted the values from Duffy et al. 2008, and another typo when AstroPaint quoted results from Coe 2010.
+1. In the transform.py file, two of the halo concentration parameters used were not matching with the reference cited  in the code. Those values are now updated from -0.047 and -0.097 to -0.47 and -0.084 so they match with Duffy et al. 2008. It seems one typo had happened when Coe 2010 quoted the values from Duffy et al. 2008, and another typo when AstroPaint quoted results from Coe 2010.
 2. In transform.py file, the evolution of critical density with redshift was assumed to be \rho_{crit}=\rho_{crit,0}(1+z)3, and is now replaced by the critical density function from astropy.cosmology.Planck18 which gives a more accurate redshift dependence based on the Hubble parameter through crit=3H(z)2/8G.
 3. Lastly in the NFW.py file, the expressions in deflection-angle and BG functions are now updated to allow for calculation of lensing deflection angle and the moving lens temperature anisotropy of a truncated NFW matter density at a certain radius.
 
