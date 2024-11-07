@@ -5,7 +5,7 @@ The main updates made to the original AstroPaint package are the following:
 3. Lastly in the NFW.py file, the expressions in deflection-angle and BG functions are now updated to allow for calculation of lensing deflection angle and the moving lens temperature anisotropy of a truncated NFW matter density at a certain radius.
 
 
-
+------------------------------------------------------------------------
 
 
 
